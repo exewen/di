@@ -1,0 +1,44 @@
+{
+    "name": "exewen/di",
+    "description": "A di component for Exewen.",
+    "authors": [
+        {
+            "name": "exewen",
+            "email": "exeweb@163.com"
+        }
+    ],
+    "license": "MIT",
+    "type": "library",
+    "keywords": [
+        "php",
+        "exewen",
+        "di"
+    ],
+    "require": {
+        "php": ">=7.4",
+        "exewen/config": "*",
+        "psr/container": "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5.7 | ^6.5 | ^7.5 | ^8.4 | ^9.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Exewen\\Di\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ExewenTest\\Di\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0.x-dev"
+        }
+    }
+}
