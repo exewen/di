@@ -37,19 +37,13 @@ class AppTest extends TestCase
 
     public function testSingleton()
     {
+        #
         $app = new Container();
         $app->singleton(ConfigInterface::class);
 
         $config = $app->get(ConfigInterface::class);
         $dependencies = $config->get('dependencies');
-        var_dump($dependencies);
 
-        $config = $app->get(ConfigInterface::class);
-        $dependencies = $config->get('dependencies');
-        var_dump($dependencies);
-
-//        $config = $app->get(ConfigInterface::class);
-//        $dependencies = $config->get('dependencies');
         $this->assertNotEmpty($dependencies);
     }
 

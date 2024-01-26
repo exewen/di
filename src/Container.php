@@ -28,6 +28,8 @@ class Container implements ContainerInterface
     ];
 
     /**
+     * 初始化DI （配置初始化+服务注册）
+     *
      * @throws \Psr\Container\ContainerExceptionInterface
      * @throws \Psr\Container\NotFoundExceptionInterface
      */
@@ -196,19 +198,22 @@ class Container implements ContainerInterface
     }
 
     /**
-     * 配置初始化
+     * 配置初始化+服务注册
      * @return void
      * @throws \Psr\Container\ContainerExceptionInterface
      * @throws \Psr\Container\NotFoundExceptionInterface
      */
     private function initialConfiguration()
     {
+        // 1、服务注册：核心服务（ConfigProvider）
         $this->registerProviders();
 
+        // 2、配置接口实例映射
         if ($dependencies = $this->get(ConfigInterface::class)->get('dependencies')) {
             $this->setDependencies($dependencies);
         }
 
+        // 3、服务注册：非核心
         if ($providers = $this->get(ConfigInterface::class)->get('providers')) {
             $this->setProviders($providers);
         }
