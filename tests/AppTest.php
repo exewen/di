@@ -18,6 +18,12 @@ class AppTest extends TestCase
         !defined('BASE_PATH_PKG') && define('BASE_PATH_PKG', dirname(__DIR__, 1));
     }
 
+    /**
+     *
+     * @return void
+     * @throws \Psr\Container\ContainerExceptionInterface
+     * @throws \Psr\Container\NotFoundExceptionInterface
+     */
     public function testBindClosure()
     {
         $app = new Container();
