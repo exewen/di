@@ -12,18 +12,45 @@ use Exewen\Di\Contract\ServiceProviderInterface;
 use Exewen\Di\Exception\ContainerException;
 use Exewen\Di\Exception\InvalidConfigException;
 
+/**
+ * 容器实现类
+ */
 class Container implements ContainerInterface
 {
+    /**
+     * 全局容器
+     * @var ContainerInterface
+     */
     protected static ContainerInterface $instance;
 
+    /**
+     * Di树
+     * 实例名key优先
+     *
+     * @var array
+     */
     protected array $instances = [];
+
+    /**
+     * 记录单例对象
+     * @var array
+     */
     protected array $bindings = [];
 
+    /**
+     * 服务提供者（服务注册上树）
+     * @var array|string[]
+     */
     protected array $providers = [
         ConfigProvider::class
     ];
 
+    /**
+     * 接口->实现映射
+     * @var array|string[]
+     */
     protected array $dependencies = [
+        ContainerInterface::class => Container::class,
         ConfigInterface::class => Config::class,
     ];
 
@@ -40,35 +67,7 @@ class Container implements ContainerInterface
     }
 
     /**
-     * 绑定实例或者闭包
-     * @param string $abstract
-     * @param $concrete
-     * @return void
-     */
-    public function bind(string $abstract, $concrete = null): void
-    {
-        $abstract = $this->getFinalAbstract($abstract);
-
-        if (is_null($concrete)) {
-            $concrete = $abstract;
-        }
-
-        // 非闭包进行处理
-        if (!$concrete instanceof Closure) {
-            if (!is_string($concrete)) {
-                throw new InvalidConfigException(self::class . '::bind(): Argument #2 ($concrete) must be of type Closure|string|null');
-            }
-            // 绑定的实例是通过绑定的闭包实现单例
-            $concrete = $this->getClosure($abstract);
-        }
-
-        // $concrete 1、闭包 2、空（字符串 $concrete=$abstract）3、实例
-        $this->make($abstract, $concrete);
-        $this->set($abstract, $concrete, false);
-    }
-
-    /**
-     * 绑定单例
+     * 注册绑定（单例）
      * @param string $abstract
      * @param $concrete
      * @return void
@@ -76,25 +75,74 @@ class Container implements ContainerInterface
     public function singleton(string $abstract, $concrete = null): void
     {
         $abstract = $this->getFinalAbstract($abstract);
-
-        $concrete = $this->make($abstract, $concrete, true);
+        $concrete = $this->make($abstract, $concrete);
         $this->set($abstract, $concrete, true);
     }
 
+    /**
+     * 注册绑定（单例 直接绑定 无依赖注入）
+     * @param string $abstract
+     * @param $concrete
+     * @return void
+     */
+    public function instance(string $abstract, $concrete = null): void
+    {
+        $this->set($abstract, $concrete, true);
+    }
+
+    /**
+     * 绑定实例或者闭包
+     *
+     * @param string $abstract
+     * @param $concrete
+     * @return void
+     */
+    public function bind(string $abstract, $concrete = null): void
+    {
+        $abstract = $this->getFinalAbstract($abstract);
+        if (is_null($concrete)) {
+            $concrete = $abstract;
+        }
+
+        // 对$concrete=string类，进行闭包转换
+        if (!$concrete instanceof Closure) {
+            if (!is_string($concrete)) {
+                throw new InvalidConfigException(self::class . '::bind(): Argument #2 ($concrete) must be of type Closure|string|null');
+            }
+            // 绑定的实例，通过绑定的闭包实现非单例
+            $concrete = $this->getClosure($abstract);
+        }
+
+        // $concrete 最终为闭包
+        $this->set($abstract, $concrete, false);
+    }
+
+
+    /**
+     * 解析实例化对象
+     * @param string $abstract
+     * @param $concrete
+     * @return int|mixed|object|null
+     */
     protected function make(string $abstract, $concrete = null)
     {
-        // 是否存在单例
+        // 存在单例 不再解析
         if ($this->abstractShared($abstract)) {
             return $this->get($abstract);
         }
 
         if ($concrete == null || is_string($concrete)) {
             // 依赖注入
-            $concrete = $this->getMakeInstance($abstract);
+            $concrete = $this->build($abstract);
         }
         return $concrete;
     }
 
+    /**
+     * 获取容器实例
+     * @param $id
+     * @return mixed
+     */
     public function get($id)
     {
         $abstract = $this->getFinalAbstract($id);
@@ -104,6 +152,7 @@ class Container implements ContainerInterface
         }
 
         $instances = $this->instances[$abstract];
+        // 闭包，导入容器
         if ($instances instanceof Closure) {
             $instances = $instances($this);
         }
@@ -111,11 +160,14 @@ class Container implements ContainerInterface
         return $instances;
     }
 
+    /**
+     * 是否存在容器
+     * @param $id
+     * @return bool
+     */
     public function has($id): bool
     {
-        $abstract = $this->getFinalAbstract($id);
-
-        return isset($this->instances[$abstract]);
+        return isset($this->instances[$this->getFinalAbstract($id)]);
     }
 
 
@@ -126,38 +178,46 @@ class Container implements ContainerInterface
      */
     protected function getClosure($abstract): Closure
     {
-        return function () use ($abstract) {
-            return $this->getMakeInstance($abstract);
+        return function (ContainerInterface $container) use ($abstract) {
+            return $this->build($abstract);
         };
     }
 
+    /**
+     * 设置全局容器
+     * @param ContainerInterface|null $container
+     * @return ContainerInterface|null
+     */
     public static function setInstance(ContainerInterface $container = null): ?ContainerInterface
     {
         return static::$instance = $container;
     }
 
+    /**
+     * 获取全局容器
+     * @return ContainerInterface
+     */
     public static function getInstance(): ContainerInterface
     {
         return static::$instance;
     }
 
     /**
-     * 依赖注入
-     * @param $abstract
+     * 依赖注入构建
+     * @param string $abstract
      * @return int|mixed|object|null
      */
-    private function getMakeInstance($abstract)
+    private function build(string $abstract)
     {
         // 接口类映射
-        $abstract = $this->convertDependencies($abstract);
-
+        $abstract = $this->getFinalAbstract($abstract);
         $reflector = new \ReflectionClass($abstract);
-        // 获取构造方法
+        // 无构造方法，直接实例化
         $constructor = $reflector->getConstructor();
         if (!$constructor) {
             return new $abstract();
         }
-        // 获取构造方法参数
+        // 无构造方法参数，直接实例化
         $dependencies = $constructor->getParameters();
         if (!$dependencies) {
             return new $abstract();
@@ -173,18 +233,9 @@ class Container implements ContainerInterface
         return $reflector->newInstanceArgs($p);
     }
 
-    /**
-     * 转换接口到实现类绑定 获反转
-     * @param $abstract
-     * @return int|mixed|string
-     */
-    private function convertDependencies($abstract)
-    {
-        return $this->dependencies[$abstract] ?? $abstract;
-    }
 
     /**
-     * 服务提供者
+     * 实现服务注册
      * @return void
      */
     private function registerProviders()
@@ -220,17 +271,34 @@ class Container implements ContainerInterface
 
     }
 
-    private function set(string $abstract, $concrete, $shared)
+    /**
+     * 实例注册
+     * @param string $abstract
+     * @param $concrete
+     * @param bool $shared 是否单例
+     * @return void
+     */
+    private function set(string $abstract, $concrete, bool $shared)
     {
         $this->bindings[$abstract] = $shared;
-        return $this->instances[$abstract] = $concrete;
+        $this->instances[$abstract] = $concrete;
     }
 
-    private function getFinalAbstract($id)
+    /**
+     * 获取最终实现类
+     * @param $abstract
+     * @return int|mixed|string
+     */
+    private function getFinalAbstract($abstract)
     {
-        return $this->convertDependencies($id);
+        return $this->dependencies[$abstract] ?? $abstract;
     }
 
+    /**
+     * 是否存在单例
+     * @param string $abstract
+     * @return false|mixed
+     */
     private function abstractShared(string $abstract)
     {
         $abstract = $this->getFinalAbstract($abstract);
@@ -238,12 +306,22 @@ class Container implements ContainerInterface
         return $this->bindings[$abstract] ?? false;
     }
 
+    /**
+     * 实现服务注册+写入providers
+     * @param array $providers
+     * @return void
+     */
     public function setProviders(array $providers): void
     {
         $this->providers = array_merge($this->providers, $providers);
         $this->registerProviders();
     }
 
+    /**
+     * 写入接口->实现映射
+     * @param array $dependencies
+     * @return void
+     */
     public function setDependencies(array $dependencies): void
     {
         $this->dependencies = array_merge($this->dependencies, $dependencies);

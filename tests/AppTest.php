@@ -3,9 +3,6 @@ declare(strict_types=1);
 
 namespace ExewenTest\Di;
 
-use Exewen\Config\Contract\ConfigInterface;
-use Exewen\Config\ConfigProvider;
-use Exewen\Config\Config;
 use Exewen\Di\Container;
 use Exewen\Di\Contract\ContainerInterface;
 use PHPUnit\Framework\TestCase;
@@ -19,39 +16,66 @@ class AppTest extends TestCase
     }
 
     /**
-     *
+     * 绑定单例 instance
      * @return void
-     * @throws \Psr\Container\ContainerExceptionInterface
-     * @throws \Psr\Container\NotFoundExceptionInterface
+     */
+    public function testInstance()
+    {
+        $app = new Container();
+        $concrete = new DemoClass($app);
+        $app->instance(DemoClass::class, $concrete);
+
+        $app->get(DemoClass::class)->getConstructCount();
+        $count = $app->get(DemoClass::class)->getConstructCount();
+        DemoClass::$constructCount = 0;
+        $this->assertEquals(1, $count);
+    }
+
+    /**
+     * 绑定单例 singleton
+     * @return void
+     */
+    public function testSingleton()
+    {
+        $app = new Container();
+        $app->singleton(DemoClass::class, DemoClass::class);
+
+        $app->get(DemoClass::class)->getConstructCount();
+        $count = $app->get(DemoClass::class)->getConstructCount();
+        DemoClass::$constructCount = 0;
+        $this->assertEquals(1, $count);
+    }
+
+    /**
+     * 绑定非单例 closure
+     * @return void
      */
     public function testBindClosure()
     {
         $app = new Container();
-        $app->bind(ConfigInterface::class, function (ContainerInterface $container) {
-            $configProvider = new ConfigProvider($container);
-            $config = $configProvider->getConfig();
-            return new Config($config);
+        $app->bind(DemoClass::class, function (ContainerInterface $container) {
+            return new DemoClass($container);
         });
-        $config = $app->get(ConfigInterface::class);
-        $dependencies = $config->get('dependencies');
-//        $config=$app->get(ConfigInterface::class);
-//        $dependencies = $config->get('dependencies');
-//        $config=$app->get(ConfigInterface::class);
-//        $dependencies = $config->get('dependencies');
-        $this->assertNotEmpty($dependencies);
+
+        $app->get(DemoClass::class)->getConstructCount();
+        $count = $app->get(DemoClass::class)->getConstructCount();
+        DemoClass::$constructCount = 0;
+        $this->assertEquals(2, $count);
     }
 
-    public function testSingleton()
+    /**
+     * 绑定非单例 class
+     * @return void
+     */
+    public function testBindClass()
     {
-        #
         $app = new Container();
-        $app->singleton(ConfigInterface::class);
+        $app->bind(DemoClass::class, DemoClass::class);
 
-        $config = $app->get(ConfigInterface::class);
-        $dependencies = $config->get('dependencies');
-
-        $this->assertNotEmpty($dependencies);
+        $app->get(DemoClass::class)->getConstructCount();
+        $count = $app->get(DemoClass::class)->getConstructCount();
+        DemoClass::$constructCount = 0;
+        $this->assertEquals(2, $count);
     }
-
 
 }
