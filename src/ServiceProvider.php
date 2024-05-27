@@ -11,7 +11,8 @@ use Exewen\Di\Contract\ServiceProviderInterface;
  */
 abstract class ServiceProvider implements ServiceProviderInterface
 {
-    protected ContainerInterface $container;
+//    protected ContainerInterface $container;
+    protected $container;
 
     public function __construct(ContainerInterface $container)
     {

@@ -15,7 +15,7 @@
         "di"
     ],
     "require": {
-        "php": ">=7.4",
+        "php": ">=7.3",
         "exewen/config": "dev-develop",
         "psr/container": "^1.0"
     },
@@ -32,7 +32,7 @@
             "ExewenTest\\Di\\": "tests/"
         }
     },
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "config": {
         "sort-packages": true
     },

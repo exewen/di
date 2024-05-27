@@ -21,7 +21,8 @@ class Container implements ContainerInterface
      * 全局容器
      * @var ContainerInterface
      */
-    protected static ContainerInterface $instance;
+//    protected static ContainerInterface $instance;
+    protected static  $instance;
 
     /**
      * Di树
@@ -29,19 +30,22 @@ class Container implements ContainerInterface
      *
      * @var array
      */
-    protected array $instances = [];
+//    protected array $instances = [];
+    protected  $instances = [];
 
     /**
      * 记录单例对象
      * @var array
      */
-    protected array $bindings = [];
+//    protected array $bindings = [];
+    protected $bindings = [];
 
     /**
      * 服务提供者（服务注册上树）
      * @var array|string[]
      */
-    protected array $providers = [
+//    protected array $providers = [
+    protected $providers = [
         ConfigProvider::class
     ];
 
@@ -49,7 +53,8 @@ class Container implements ContainerInterface
      * 接口->实现映射
      * @var array|string[]
      */
-    protected array $dependencies = [
+//    protected array $dependencies = [
+    protected $dependencies = [
         ContainerInterface::class => Container::class,
         ConfigInterface::class => Config::class,
     ];
@@ -209,21 +214,20 @@ class Container implements ContainerInterface
      */
     private function build(string $abstract)
     {
-        // 接口类映射
         $abstract = $this->getFinalAbstract($abstract);
+        // 获取反射类
         $reflector = new \ReflectionClass($abstract);
-        // 无构造方法，直接实例化
+        // 无构造方法活 无构造方法参数，直接实例化
         $constructor = $reflector->getConstructor();
         if (!$constructor) {
             return new $abstract();
         }
-        // 无构造方法参数，直接实例化
         $dependencies = $constructor->getParameters();
         if (!$dependencies) {
             return new $abstract();
         }
 
-        // 依赖注入
+        /** 依赖注入 */
         $p = [];
         foreach ($dependencies as $dependency) {
             if (!is_null($dependency->getClass())) {
@@ -258,7 +262,6 @@ class Container implements ContainerInterface
     {
         // 1、服务注册：核心服务（ConfigProvider）
         $this->registerProviders();
-
         // 2、配置接口实例映射
         if ($dependencies = $this->get(ConfigInterface::class)->get('dependencies')) {
             $this->setDependencies($dependencies);
@@ -325,6 +328,15 @@ class Container implements ContainerInterface
     public function setDependencies(array $dependencies): void
     {
         $this->dependencies = array_merge($this->dependencies, $dependencies);
+    }
+
+    private function namespace_replace($provider)
+    {
+        // 命名空间兼容
+        if (substr($provider, 0, 1) !== '\\') {
+            $provider = '\\' . $provider;
+        }
+        return $provider;
     }
 
 
