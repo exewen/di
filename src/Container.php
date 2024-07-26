@@ -199,10 +199,10 @@ class Container implements ContainerInterface
     }
 
     /**
-     * 获取全局容器
-     * @return ContainerInterface
+     * 获取全局容器 app容器对象
+     * @return ContainerInterface|null
      */
-    public static function getInstance(): ContainerInterface
+    public static function getInstance(): ?ContainerInterface
     {
         return static::$instance;
     }
