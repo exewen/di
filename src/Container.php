@@ -145,10 +145,10 @@ class Container implements ContainerInterface
 
     /**
      * 获取容器实例
-     * @param $id
+     * @param string $id
      * @return mixed
      */
-    public function get($id)
+    public function get(string $id)
     {
         $abstract = $this->getFinalAbstract($id);
 
@@ -167,10 +167,10 @@ class Container implements ContainerInterface
 
     /**
      * 是否存在容器
-     * @param $id
+     * @param string $id
      * @return bool
      */
-    public function has($id): bool
+    public function has(string $id): bool
     {
         return isset($this->instances[$this->getFinalAbstract($id)]);
     }
@@ -229,9 +229,17 @@ class Container implements ContainerInterface
 
         /** 依赖注入 */
         $p = [];
+        $isPhp80OrGreater = version_compare(PHP_VERSION, '8.0.0', '>=');
         foreach ($dependencies as $dependency) {
-            if (!is_null($dependency->getClass())) {
-                $p[] = $this->make($dependency->getClass()->name);
+            if ($isPhp80OrGreater) {
+                $type = $dependency->getType();
+                if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
+                    $p[] = $this->make($type->getName());
+                }
+            } else {
+                if (!is_null($dependency->getClass())) {
+                    $p[] = $this->make($dependency->getClass()->name);
+                }
             }
         }
         return $reflector->newInstanceArgs($p);

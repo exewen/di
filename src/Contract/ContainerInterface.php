@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 namespace Exewen\Di\Contract;
 
-use Psr\Container\ContainerInterface as PsrContainerInterface;
+//use Psr\Container\ContainerInterface as PsrContainerInterface; 1 2 版本不兼容
+use Exewen\Utils\Contract\ContainerInterface as PsrContainerInterface;
 
 /**
  * 容器接口类
@@ -12,17 +13,17 @@ interface ContainerInterface extends PsrContainerInterface
 {
     /**
      * 获取实例
-     * @param $id
+     * @param string $id
      * @return mixed
      */
-    public function get($id);
+    public function get(string $id);
 
     /**
      * 是否存在实例
-     * @param $id
+     * @param string $id
      * @return mixed
      */
-    public function has($id);
+    public function has(string $id): bool;
 
     /**
      * 绑定实例或者闭包
