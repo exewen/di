@@ -17,37 +17,36 @@ use Exewen\Di\Exception\InvalidConfigException;
  */
 class Container implements ContainerInterface
 {
-    /**
-     * 全局容器
-     * @var ContainerInterface
-     */
-//    protected static ContainerInterface $instance;
-    protected static  $instance;
 
     /**
      * Di树
+     * 已注册的对象
      * 实例名key优先
      *
      * @var array
      */
 //    protected array $instances = [];
-    protected  $instances = [];
+    protected $instances = [];
 
     /**
-     * 记录单例对象
+     * 记录单例对象 作用（存在单例 不再build）
      * @var array
      */
 //    protected array $bindings = [];
     protected $bindings = [];
 
     /**
-     * 服务提供者（服务注册上树）
+     * 服务提供者列表（服务注册上树）
      * @var array|string[]
      */
 //    protected array $providers = [
-    protected $providers = [
-        ConfigProvider::class
-    ];
+    protected $providers = [];
+
+    /**
+     * 已注册服务提供者
+     * @var array
+     */
+    protected $providersRegisterMap = [];
 
     /**
      * 接口->实现映射
@@ -56,20 +55,8 @@ class Container implements ContainerInterface
 //    protected array $dependencies = [
     protected $dependencies = [
         ContainerInterface::class => Container::class,
-        ConfigInterface::class => Config::class,
+        ConfigInterface::class    => Config::class,
     ];
-
-    /**
-     * 初始化DI （配置初始化+服务注册）
-     *
-     * @throws \Psr\Container\ContainerExceptionInterface
-     * @throws \Psr\Container\NotFoundExceptionInterface
-     */
-    public function __construct()
-    {
-        $this->initialConfiguration();
-        self::setInstance($this);
-    }
 
     /**
      * 注册绑定（单例）
@@ -188,24 +175,6 @@ class Container implements ContainerInterface
         };
     }
 
-    /**
-     * 设置全局容器
-     * @param ContainerInterface|null $container
-     * @return ContainerInterface|null
-     */
-    public static function setInstance(ContainerInterface $container = null): ?ContainerInterface
-    {
-        return static::$instance = $container;
-    }
-
-    /**
-     * 获取全局容器 app容器对象
-     * @return ContainerInterface|null
-     */
-    public static function getInstance(): ?ContainerInterface
-    {
-        return static::$instance;
-    }
 
     /**
      * 依赖注入构建
@@ -228,7 +197,7 @@ class Container implements ContainerInterface
         }
 
         /** 依赖注入 */
-        $p = [];
+        $p                = [];
         $isPhp80OrGreater = version_compare(PHP_VERSION, '8.0.0', '>=');
         foreach ($dependencies as $dependency) {
             if ($isPhp80OrGreater) {
@@ -255,31 +224,12 @@ class Container implements ContainerInterface
         foreach ($this->providers as $provider) {
             $prov = new $provider($this);
             if ($prov instanceof ServiceProviderInterface || $prov instanceof ConfigProvider) {
-                $prov->register();
+                if (!isset($this->providersRegisterMap[$provider])) {
+                    $prov->register();
+                    $this->providersRegisterMap[$provider] = true;
+                }
             }
         }
-    }
-
-    /**
-     * 配置初始化+服务注册
-     * @return void
-     * @throws \Psr\Container\ContainerExceptionInterface
-     * @throws \Psr\Container\NotFoundExceptionInterface
-     */
-    private function initialConfiguration()
-    {
-        // 1、服务注册：核心服务（ConfigProvider）
-        $this->registerProviders();
-        // 2、配置接口实例映射
-        if ($dependencies = $this->get(ConfigInterface::class)->get('dependencies')) {
-            $this->setDependencies($dependencies);
-        }
-
-        // 3、服务注册：非核心
-        if ($providers = $this->get(ConfigInterface::class)->get('providers')) {
-            $this->setProviders($providers);
-        }
-
     }
 
     /**
@@ -291,7 +241,7 @@ class Container implements ContainerInterface
      */
     private function set(string $abstract, $concrete, bool $shared)
     {
-        $this->bindings[$abstract] = $shared;
+        $this->bindings[$abstract]  = $shared;
         $this->instances[$abstract] = $concrete;
     }
 

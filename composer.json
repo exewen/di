@@ -16,7 +16,7 @@
     ],
     "require": {
         "php": ">=7.3",
-        "exewen/config": "^1",
+        "exewen/config": "^2",
         "psr/container": "^1.0 || ^2.0"
     },
     "require-dev": {
