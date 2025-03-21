@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="非单例-类" type="PHPUnitRunConfigurationType" factoryName="PHPUnit">
+    <TestRunner class="ExewenTest\Di\AppTest" file="$PROJECT_DIR$/tests/AppTest.php" method="testBindClass" scope="Method" />
+    <method v="2" />
+  </configuration>
+</component>
