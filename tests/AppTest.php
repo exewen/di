@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 namespace ExewenTest\Di;
 
-use Exewen\Di\Container;
+use Exewen\Di\Context\ApplicationContext;
 use Exewen\Di\Contract\ContainerInterface;
+use ExewenTest\Di\DemoClass\DemoClass;
 use PHPUnit\Framework\TestCase;
 
 class AppTest extends TestCase
@@ -16,66 +17,97 @@ class AppTest extends TestCase
     }
 
     /**
-     * 绑定单例 instance
+     * 单例-实例
      * @return void
      */
     public function testInstance()
     {
-        $app = new Container();
+        $app      = ApplicationContext::getContainer();
         $concrete = new DemoClass($app);
         $app->instance(DemoClass::class, $concrete);
 
-        $app->get(DemoClass::class)->getConstructCount();
-        $count = $app->get(DemoClass::class)->getConstructCount();
-        DemoClass::$constructCount = 0;
-        $this->assertEquals(1, $count);
+        /** @var DemoClass $instance */
+        $instance = $app->get(DemoClass::class);
+        $check    = $instance->getConstructCount();
+        $this->assertEquals(1, $check);
+
+        $instance->addConstructCount();
+
+        /** @var DemoClass $instance */
+        $instance = $app->get(DemoClass::class);
+        $check    = $instance->getConstructCount();
+        $this->assertEquals(2, $check);
     }
 
     /**
-     * 绑定单例 singleton
+     * 单例-类
      * @return void
      */
     public function testSingleton()
     {
-        $app = new Container();
+        $app = ApplicationContext::getContainer();
         $app->singleton(DemoClass::class, DemoClass::class);
 
-        $app->get(DemoClass::class)->getConstructCount();
-        $count = $app->get(DemoClass::class)->getConstructCount();
-        DemoClass::$constructCount = 0;
-        $this->assertEquals(1, $count);
+        /** @var DemoClass $instance */
+        $instance = $app->get(DemoClass::class);
+        $check    = $instance->getConstructCount();
+        $this->assertEquals(1, $check);
+
+        $instance->addConstructCount();
+
+        /** @var DemoClass $instance */
+        $instance = $app->get(DemoClass::class);
+        $check    = $instance->getConstructCount();
+        $this->assertEquals(2, $check);
     }
 
     /**
-     * 绑定非单例 closure
+     * 非单例-闭包
      * @return void
      */
     public function testBindClosure()
     {
-        $app = new Container();
+        $app = ApplicationContext::getContainer();
         $app->bind(DemoClass::class, function (ContainerInterface $container) {
             return new DemoClass($container);
         });
 
-        $app->get(DemoClass::class)->getConstructCount();
-        $count = $app->get(DemoClass::class)->getConstructCount();
-        DemoClass::$constructCount = 0;
-        $this->assertEquals(2, $count);
+        /** @var DemoClass $instance */
+        $instance = $app->get(DemoClass::class);
+        $check    = $instance->getConstructCount();
+        $this->assertEquals(1, $check);
+        $instance->addConstructCount();
+        $check = $instance->getConstructCount();
+        $this->assertEquals(2, $check);
+
+        /** @var DemoClass $instance */
+        $instance = $app->get(DemoClass::class);
+        $check    = $instance->getConstructCount();
+        $this->assertEquals(1, $check);
     }
 
     /**
-     * 绑定非单例 class
+     * 非单例-类
      * @return void
      */
     public function testBindClass()
     {
-        $app = new Container();
+        $app = ApplicationContext::getContainer();
         $app->bind(DemoClass::class, DemoClass::class);
 
-        $app->get(DemoClass::class)->getConstructCount();
-        $count = $app->get(DemoClass::class)->getConstructCount();
-        DemoClass::$constructCount = 0;
-        $this->assertEquals(2, $count);
+        /** @var DemoClass $instance */
+        $instance = $app->get(DemoClass::class);
+        $check    = $instance->getConstructCount();
+        $this->assertEquals(1, $check);
+        $instance->addConstructCount();
+        $check = $instance->getConstructCount();
+        $this->assertEquals(2, $check);
+
+        /** @var DemoClass $instance */
+        $instance = $app->get(DemoClass::class);
+        $check    = $instance->getConstructCount();
+        $this->assertEquals(1, $check);
     }
+
 
 }
