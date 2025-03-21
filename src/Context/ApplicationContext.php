@@ -9,7 +9,8 @@ use Exewen\Di\Contract\ContainerInterface;
 
 class ApplicationContext
 {
-    protected static ?ContainerInterface $container = null;
+//    protected static ?ContainerInterface $container = null;
+    protected static $container = null;
 
     /**
      * 获取容器
